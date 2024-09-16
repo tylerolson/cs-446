@@ -1,5 +1,3 @@
-#include "simpleshell.h"
-
 #include <errno.h>
 #include <fcntl.h>
 #include <stdio.h>
@@ -18,6 +16,50 @@ int parseInput(char *input, char splitWords[][500], int maxWords) {
     }
 
     return count;
+}
+
+void changeDirectories(const char *path) {
+    if (chdir(path) == -1) {
+        printf("chdir: Failed %s\n", strerror(errno));
+    }
+}
+
+int executeCommand(char *const *enteredCommand, const char *infile,
+                   const char *outfile) {
+    pid_t p = fork();
+
+    if (p < 0) {
+        printf("fork: Failed %s\n", strerror(errno));
+        return -1;
+    } else if (p == 0) {  // child process
+        if (infile != NULL) {
+            int fd = open(infile, O_RDONLY, 0666);
+            dup2(fd, STDIN_FILENO);  // STDIN_FILENO is 0
+            close(fd);
+        }
+
+        if (outfile != NULL) {
+            int fd = open(outfile, O_WRONLY | O_CREAT | O_TRUNC, 0666);
+            dup2(fd, STDOUT_FILENO);  // STDOUT_FILENO is 1
+            close(fd);
+        }
+
+        execvp(enteredCommand[0], enteredCommand);
+        printf("execvp: Failed %s\n", strerror(errno));
+        _Exit(1);
+    } else {
+        int status;
+        wait(&status);
+        if (WIFEXITED(status)) {
+            if (WEXITSTATUS(status) != 0) {
+                printf("Child finished with error status: %d\n",
+                       WEXITSTATUS(status));
+            }
+        }
+        return 0;
+    }
+
+    return 0;
 }
 
 int main() {
@@ -68,50 +110,6 @@ int main() {
             command[commandAmount] = NULL;
             executeCommand(command, infile, outfile);
         }
-    }
-
-    return 0;
-}
-
-void changeDirectories(const char *path) {
-    if (chdir(path) == -1) {
-        printf("chdir: Failed %s\n", strerror(errno));
-    }
-}
-
-int executeCommand(char *const *enteredCommand, const char *infile,
-                   const char *outfile) {
-    pid_t p = fork();
-
-    if (p < 0) {
-        printf("fork: Failed %s\n", strerror(errno));
-        return -1;
-    } else if (p == 0) {  // child process
-        if (infile != NULL) {
-            int fd = open(infile, O_RDONLY, 0666);
-            dup2(fd, STDIN_FILENO);  // STDIN_FILENO is 0
-            close(fd);
-        }
-
-        if (outfile != NULL) {
-            int fd = open(outfile, O_WRONLY | O_CREAT | O_TRUNC, 0666);
-            dup2(fd, STDOUT_FILENO);  // STDOUT_FILENO is 1
-            close(fd);
-        }
-
-        execvp(enteredCommand[0], enteredCommand);
-        printf("execvp: Failed %s\n", strerror(errno));
-        _Exit(1);
-    } else {
-        int status;
-        wait(&status);
-        if (WIFEXITED(status)) {
-            if (WEXITSTATUS(status) != 0) {
-                printf("Child finished with error status: %d\n",
-                       WEXITSTATUS(status));
-            }
-        }
-        return 0;
     }
 
     return 0;
