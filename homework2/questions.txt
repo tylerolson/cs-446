@@ -1,0 +1,23 @@
+a) What are your observations?
+
+As I increase the number of threads, The time it takes to execute goes down.
+I get 1ms using 1 thread and down to less than 1 with 2 threads. I remain at 0 ms until I use 100 threads and its back up to 1ms.
+10000 threads takes a whole 476 ms.
+
+b) Do you find the observed behavior reasonable? Why / Why not?
+
+I find it reasonable that more threads will result in faster preformance, until creating threads ends up taking longer than the proces itself, resulting in slower times.
+
+c) What kind of considerations did you make for your implementation of the Critical Section? Provide
+reasoning / justification.
+
+The critical section is kept as small as possible which is to just update the total sum
+Each thread computes its local sum without locking, minimizing contention, and is only locked when updating the shared total sum.
+
+[EXTRA] What do you think would happen if instead of having the Threads loop over the int
+array to compute a local arraySum, and finally update the totalSum, we were instead just directly
+adding to totalSum each time we were accessing an array element within each Thread (i.e. within
+the Thread’s for loop)? Why?
+
+It would require locking and unlocking the mutex for every single array element which would create contention between threads and result in worse performance.
+In the current implementation it computes local sums and then updates the total once, which is much more efficient.
