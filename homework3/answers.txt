@@ -1,0 +1,20 @@
+1) I ran `./sched 4` on my virtual machine, which has 4 threads.
+In the output, I saw four different thread IDs, each showing a progress bar and a latency in nanoseconds, with values ranging from the millions to tens of millions.
+
+2) After running `./sched 4`, I used `watch -n .5 grep ctxt /proc/7708/status` to monitor the context switches of one thread.
+The number of context switches steadily increased as the program ran.
+Then, I changed the scheduling policy to `SCHED_FIFO` with priority 50 using `sudo chrt -f -p 50 7708`.
+This resulted in fewer non-voluntary context switches, and the thread's progress bar updated more consistently.
+Raising the priority to 99 with `sudo chrt -f -p 99 7708` further reduced context switches, especially non-voluntary ones.
+The progress bar updated even faster, with latency values becoming lower and more stable.
+
+3) To isolate a CPU and move a thread to it, I used the following commands:
+   sudo cset shield -c 1
+   ./sched 4
+   sudo cset shield -s 5417
+
+   After assigning a thread to the isolated CPU, that thread executed faster, while the remaining threads slowed down.
+
+4) I then monitored the context switches of the isolated thread with `watch -n .5 grep ctxt /proc/5417/status` and set its priority to 99 with `sudo chrt -f -p 99 5417`.
+This thread exhibited very few context switches, which decreased even more when priority was raised to 99.
+It also had lower latency and executed significantly faster.
